@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPA</title>
+    <style>
+        h2, #error {
+            text-align: center;
+        }
+
+        #error{
+            color: red;
+        }
+
+        form{
+            display: block;
+            height: 100px;
+            width: 500px;
+            margin: auto;
+        }
+
+        .container{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 100px;
+            width: 250px;
+            flex-wrap: wrap;
+            margin: 0 auto;
+        }
+
+        label{
+            margin-right: 10px;
+        }
+
+        input:last-of-type{
+            margin-left: auto;
+            margin-top: 10px;
+            width: 50px;
+            border-radius: 10px;
+            
+        }
+
+        .student-data{
+            width: 400px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>GPA Grabber</h2>
+    <h3 id="error">{{ error }}</h3>
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="container">
+            {{ form }}
+            <input type="submit" value="Get">
+        </div>
+    </form>
+    {% if gpa_found %}
+        <div class="student-data">
+            <h3>Name : {{ ar_name }}</h3>
+            <h3>Email : {{ email }}</h3>
+            <h3>Sitting Number : {{ sitting_number}}</h3>
+            <h3>GPA : {{ gpa }}</h3>
+        </div>
+    {% endif %}
+</body>
+</html>
