@@ -6,8 +6,8 @@ import json
 
 # Forms
 class LoginForm(forms.Form):
-    username = forms.CharField(label="Username", max_length=10)
-    password = forms.CharField(label="Password", max_length=64)
+    username = forms.CharField(label="Username", max_length=10, widget=forms.TextInput(attrs={"class" : "form-control", "autocomplete" : "off"}))
+    password = forms.CharField(label="Password", max_length=64, widget=forms.TextInput(attrs={"class" : "form-control", "autocomplete" : "off"}))
 
 # Create your views here.
 def index(request):
