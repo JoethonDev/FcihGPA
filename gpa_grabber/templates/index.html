@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>GPA</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+        <style>
+            body {
+                background-color: #fdfeec;
+            }
+
+            .header {
+                display: flex;
+                margin-top: 20px;
+                padding-left: 20px;
+            }
+
+            .recent-search {
+                border-color: black !important;
+            }
+
+            .recent {
+                display: none;
+            }
+
+            .username {
+                cursor: pointer;
+                font-weight: bold;
+
+            }
+
+            .fa-xmark {
+                cursor: pointer;
+                transition-delay: 0.2s;
+            }
+
+            .fa-xmark:hover {
+                color: red;
+            }
+
+            .center {
+                flex: 2;
+            }
+
+            h2, #error {
+                text-align: center;
+            }
+
+            #error{
+                color: red;
+            }
+
+            form{
+                display: block;
+                width: 500px;
+                margin: auto;
+            }
+
+            .container{
+                width: 250px;
+                margin: 0 auto;
+            }
+
+            input[type='submit'] {
+                margin-left: auto;
+                margin-top: 10px;
+                width: 80px;
+                border-radius: 10px;
+            }
+
+            .student-data{
+                width: 800px;
+                margin: auto;
+            }
+        </style>
+    </head>
+    
+    <body >
+        <div class="header">
+            <div class="left recent-search rounded border border-3 p-3">
+                <h3>Recent Search</h3>
+                <table class="table table-borderless recent">
+                    <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Student ID</th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="center form-section">
+                <h2>GPA Grabber</h2>
+                <h3 id="error">{{ error }}</h3>
+                <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="container">
+
+                        {% for field in form %}
+                            <div class="form-group mb-3">
+                                {{ field.label }}
+                                {{ field }}
+                            </div>
+                        {% endfor %}
+                        <div class="form-group mb-3">
+                            <input type="checkbox" class="form-check-input" name="saveLocal" id="saveLocal">
+                            <label for="saveLocal" class="form-check-label">Save Results</label>
+                        </div>
+                        <div class="form-group mb-3">
+                            <input class="btn btn-primary" type="submit" value="Get">
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if gpa_found %}
+            <table class="table student-data mt-3">
+                <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Sitting Number</th>
+                    <th scope="col">GPA</th>
+                    <!-- <th scope="col"></th> -->
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <th scope="row">{{ ar_name }}</th>
+                    <td>{{ email }}</td>
+                    <td>{{ sitting_number}}</td>
+                    <td>{{ gpa }}</td>
+                </tr>
+                </tbody>
+            </table>
+        {% endif %}
+
+        <script>
+            const RECENTSEARCH = document.querySelector(".recent")
+            const FORM = document.querySelector("form")
+            const USERNAME = document.querySelector("input[name='username']")
+            const PASSWORD = document.querySelector("input[name='password']")
+
+            // on window load
+            document.addEventListener("DOMContentLoaded", () => {
+                displayRecent()
+            })
+
+
+            // on form submit
+            FORM.addEventListener("submit", () => {
+                let username = USERNAME.value
+                let password = PASSWORD.value
+
+                let data = {
+                    "username" : username,
+                    "password" : password
+                }
+
+                pushRecent(data)
+                
+            })
+
+
+            // Functions
+            function getRecent(){
+                let recentSearch = localStorage.getItem("recentSearch")
+                let recentData = []
+                if (recentSearch) {
+                    recentData = JSON.parse(recentSearch)
+                }
+                return recentData
+            }
+
+            function displayRecent(){
+                RECENTSEARCH.querySelector("tbody").innerHTML = ""
+                let rows = getRecent()
+                if (rows.length != 0) {
+                    showRecent()
+                    rows.forEach((row, index) => addRows(row, index))
+                    activeRemoveBtns()
+                    loadUserData()
+                }
+            }
+
+            function addRows(row, index){
+                let tbody =  RECENTSEARCH.querySelector("tbody")
+                let rowHTML = ` 
+                    <tr>
+                        <th scope="row">${index}</th>
+                        <td class="username">${row.username}</td>
+                        <td><i class="fa-solid fa-xmark"></i></td>
+                    </tr>
+                `
+                tbody.insertAdjacentHTML("beforeend", rowHTML)
+            }
+
+            function activeRemoveBtns(){
+                let xMarks = document.querySelectorAll(".fa-xmark")
+                xMarks.forEach(element => {
+                    element.addEventListener("click", (e) => {
+                        let parentRow = e.target.parentNode.parentNode
+                        console.log(parentRow)
+                        let username = parentRow.querySelector(".username").innerHTML
+                        let data = getRecent()
+                        let index = getIndex(data, username)
+                        data.splice(index, 1)
+                        localStorage.setItem("recentSearch", JSON.stringify(data))
+                        parentRow.remove()
+                        displayRecent()
+                        if (checkEmptyTable()){
+                            hideRecent()
+                        }
+                    })
+                })
+            }
+
+            function loadUserData(){
+                let username = document.querySelectorAll("tbody .username")
+                username.forEach(element => {
+                    element.addEventListener("click", (e) => {
+                        let username = e.target.innerHTML
+                        let data = getRecent()
+                        let index = getIndex(data, username)
+                        console.log(index)
+                        console.log(data)
+                        loadInFields(data[index])
+                    })
+                })
+            }
+
+            function loadInFields(data){
+                console.log(data)
+                USERNAME.value = data.username 
+                PASSWORD.value = data.password
+            }
+
+            function checkEmptyTable(){
+                let tbody =  RECENTSEARCH.querySelector("tbody")
+                return tbody.children.length === 0
+            }
+
+            function showRecent(){
+                RECENTSEARCH.style.display = "block"
+            }
+
+            function hideRecent(){
+                RECENTSEARCH.style.display = "none"
+            }
+
+            function pushRecent(data){
+                let recentData = getRecent()
+                if (recentData.length != 0) {
+                    let index = getIndex(recentData, data.username)
+                    if (index != -1){
+                        removeAndPush(recentData, index)
+                    }
+                    else {
+                        addRecent(recentData, data)
+                    }
+                }
+                else {
+                    recentData.unshift(data)
+                }
+                localStorage.setItem("recentSearch", JSON.stringify(recentData))
+            }
+
+            function addRecent(recentData, data){
+                if (recentData.length == 5){
+                    recentData.pop()
+                }
+                recentData.unshift(data)
+            }
+
+            function removeAndPush(recentData, index){
+                let returnedUser = recentData.splice(index, 1)[0]
+                recentData.unshift(returnedUser)
+            }
+
+            function getIndex(data, username){
+                let returnedIndex = -1
+                data.forEach((user, index) => {
+                    console.log(user.username)
+                    console.log(index)
+                    if (user.username == username){
+                        returnedIndex = index
+                        return index
+                    }
+                })
+                return returnedIndex
+            }   
+
+            function saveTable(){
+
+            }
+
+        </script>
+
+    </body>
+</html>
