@@ -18,7 +18,16 @@
             }
 
             .recent-search {
+                width: 270px;;
+            }
+
+            .recent-section{
+                height: 300px;
                 border-color: black !important;
+            }
+
+            .text-muted{
+                font-size: 12px;
             }
 
             .recent {
@@ -41,7 +50,8 @@
             }
 
             .center {
-                flex: 2;
+                width: 800px;
+                margin-left: 65px;
             }
 
             h2, #error {
@@ -79,21 +89,28 @@
     
     <body >
         <div class="header">
-            <div class="left recent-search rounded border border-3 p-3">
-                <h3>Recent Search</h3>
-                <table class="table table-borderless recent">
-                    <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Student ID</th>
-                        <th scope="col"></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                        
-                    </tbody>
-                </table>
+            <div class="left recent-search">
+                <div class="recent-section rounded border border-3 p-3 mb-2">
+                    <h3>Recent Search</h3>
+                    <span class="text-muted">click on student id to fill form automatically</span>
+                    <table class="table table-borderless recent" data-key="recentSearch">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Student ID</th>
+                            <th scope="col"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-danger">
+                    All data in the Recent Search and Result tables is stored locally in your browser. We do not save any of your data.
+                </div>
             </div>
+           
 
             <div class="center form-section">
                 <h2>GPA Grabber</h2>
@@ -108,10 +125,10 @@
                                 {{ field }}
                             </div>
                         {% endfor %}
-                        <div class="form-group mb-3">
+                        <!-- <div class="form-group mb-3">
                             <input type="checkbox" class="form-check-input" name="saveLocal" id="saveLocal">
                             <label for="saveLocal" class="form-check-label">Save Results</label>
-                        </div>
+                        </div> -->
                         <div class="form-group mb-3">
                             <input class="btn btn-primary" type="submit" value="Get">
                         </div>
@@ -121,30 +138,31 @@
             </div>
         </div>
 
-        {% if gpa_found %}
-            <table class="table student-data mt-3">
-                <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Sitting Number</th>
-                    <th scope="col">GPA</th>
-                    <!-- <th scope="col"></th> -->
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <th scope="row">{{ ar_name }}</th>
-                    <td>{{ email }}</td>
-                    <td>{{ sitting_number}}</td>
-                    <td>{{ gpa }}</td>
-                </tr>
-                </tbody>
-            </table>
-        {% endif %}
+        <table class="table student-data mt-3" data-key="recentResult">
+            <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Sitting Number</th>
+                <th scope="col">GPA</th>
+                <th scope="col"></th>
+            </tr>
+            </thead>
+            <tbody>
+                {% if gpa_found %}
+                    <tr>
+                        <th scope="row" class="name">{{ ar_name }}</th>
+                        <td class="email">{{ email }}</td>
+                        <td class="sittingNo">{{ sitting_number}}</td>
+                        <td class="gpa">{{ gpa }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
 
         <script>
             const RECENTSEARCH = document.querySelector(".recent")
+            const RESULTSEARCH = document.querySelector(".student-data")
             const FORM = document.querySelector("form")
             const USERNAME = document.querySelector("input[name='username']")
             const PASSWORD = document.querySelector("input[name='password']")
@@ -152,6 +170,8 @@
             // on window load
             document.addEventListener("DOMContentLoaded", () => {
                 displayRecent()
+                saveResult()
+                displayResult()
             })
 
 
@@ -165,132 +185,66 @@
                     "password" : password
                 }
 
-                pushRecent(data)
+                saveToLocal("recentSearch", data)
                 
             })
 
 
             // Functions
-            function getRecent(){
-                let recentSearch = localStorage.getItem("recentSearch")
-                let recentData = []
-                if (recentSearch) {
-                    recentData = JSON.parse(recentSearch)
-                }
-                return recentData
-            }
 
-            function displayRecent(){
-                RECENTSEARCH.querySelector("tbody").innerHTML = ""
-                let rows = getRecent()
-                if (rows.length != 0) {
-                    showRecent()
-                    rows.forEach((row, index) => addRows(row, index))
-                    activeRemoveBtns()
-                    loadUserData()
+            // General Functions
+            function removeValue(data, value) {
+                let index = getIndex(data, value)
+                if (index != -1){
+                    data.splice(index, 1)
                 }
             }
 
-            function addRows(row, index){
-                let tbody =  RECENTSEARCH.querySelector("tbody")
-                let rowHTML = ` 
-                    <tr>
-                        <th scope="row">${index}</th>
-                        <td class="username">${row.username}</td>
-                        <td><i class="fa-solid fa-xmark"></i></td>
-                    </tr>
-                `
-                tbody.insertAdjacentHTML("beforeend", rowHTML)
-            }
-
-            function activeRemoveBtns(){
-                let xMarks = document.querySelectorAll(".fa-xmark")
-                xMarks.forEach(element => {
-                    element.addEventListener("click", (e) => {
-                        let parentRow = e.target.parentNode.parentNode
-                        console.log(parentRow)
-                        let username = parentRow.querySelector(".username").innerHTML
-                        let data = getRecent()
-                        let index = getIndex(data, username)
-                        data.splice(index, 1)
-                        localStorage.setItem("recentSearch", JSON.stringify(data))
-                        parentRow.remove()
-                        displayRecent()
-                        if (checkEmptyTable()){
-                            hideRecent()
-                        }
-                    })
-                })
-            }
-
-            function loadUserData(){
-                let username = document.querySelectorAll("tbody .username")
-                username.forEach(element => {
-                    element.addEventListener("click", (e) => {
-                        let username = e.target.innerHTML
-                        let data = getRecent()
-                        let index = getIndex(data, username)
-                        console.log(index)
-                        console.log(data)
-                        loadInFields(data[index])
-                    })
-                })
-            }
-
-            function loadInFields(data){
-                console.log(data)
-                USERNAME.value = data.username 
-                PASSWORD.value = data.password
-            }
-
-            function checkEmptyTable(){
-                let tbody =  RECENTSEARCH.querySelector("tbody")
-                return tbody.children.length === 0
-            }
-
-            function showRecent(){
-                RECENTSEARCH.style.display = "block"
-            }
-
-            function hideRecent(){
-                RECENTSEARCH.style.display = "none"
-            }
-
-            function pushRecent(data){
-                let recentData = getRecent()
-                if (recentData.length != 0) {
-                    let index = getIndex(recentData, data.username)
-                    if (index != -1){
-                        removeAndPush(recentData, index)
+            function getUser(username) {
+                let data = getRecent()
+                let userData = {}
+                data.forEach(user => {
+                    if (user.username == username) {
+                        userData = user
                     }
-                    else {
-                        addRecent(recentData, data)
-                    }
+                })
+                return userData
+            }
+
+            function getData(key){
+                if (key === "recentSearch"){
+                    return getRecent()
                 }
                 else {
-                    recentData.unshift(data)
+                    return getResults()
                 }
-                localStorage.setItem("recentSearch", JSON.stringify(recentData))
             }
 
-            function addRecent(recentData, data){
-                if (recentData.length == 5){
-                    recentData.pop()
+            function saveToLocal(key, data){
+                let storedData = getData(key)
+                console.log("Data : ")
+                console.log(data)
+                if (storedData.length != 0) {
+                    removeValue(storedData, data)
                 }
-                recentData.unshift(data)
+
+                pushToLocal(storedData, data)
+                localStorage.setItem(key, JSON.stringify(storedData))
             }
 
-            function removeAndPush(recentData, index){
-                let returnedUser = recentData.splice(index, 1)[0]
-                recentData.unshift(returnedUser)
+            function pushToLocal(storedData, data){
+                if (storedData.length == 5){
+                    storedData.pop()
+                }
+                storedData.unshift(data)
             }
 
-            function getIndex(data, username){
+            function getIndex(dataList, data){
                 let returnedIndex = -1
-                data.forEach((user, index) => {
-                    console.log(user.username)
-                    console.log(index)
-                    if (user.username == username){
+                data  = JSON.stringify(data)
+                dataList.forEach((item, index) => {
+                    item = JSON.stringify(item)
+                    if (item == data){
                         returnedIndex = index
                         return index
                     }
@@ -298,9 +252,204 @@
                 return returnedIndex
             }   
 
-            function saveTable(){
-
+            function parseJson(data){
+                let parsedData = []
+                if (data) {
+                    parsedData = JSON.parse(data)
+                }
+                return parsedData
             }
+
+            function clearRows(table){
+                table.querySelector("tbody").innerHTML = ""
+            }
+
+            function addRow(table, row){
+                let tbody = table.querySelector("tbody")
+                tbody.insertAdjacentHTML("beforeend", row)
+            }
+
+            function checkEmptyTable(table){
+                let tbody =  table.querySelector("tbody")
+                return tbody.children.length === 0
+            }
+                    
+            function showTable(table){
+                table.style.display = "block"
+            }
+
+            function hideTable(table){
+                table.style.display = "none"
+            }
+
+            function displayTable(key) {
+                if (key == "recentSearch"){
+                    displayRecent()
+                }
+                else{
+                    displayResult()
+                }
+            }
+
+            function removeRow(key, parentRow){
+                if (key == "recentSearch"){
+                    return removeRecent(parentRow)
+                }
+                else{
+                    return removeResult(parentRow)
+                }
+            }
+
+            function activeRemoveBtns(table){
+                console.log(`Table : ${table}`)
+
+                let key = table.dataset.key
+                let xMarks = table.querySelectorAll(".fa-xmark")
+                xMarks.forEach(element => {
+                    element.addEventListener("click", (e) => {
+                        let parentRow = e.target.parentNode.parentNode
+                        console.log(`Row : ${parentRow}`)
+
+                        let data = removeRow(key, parentRow)
+                        localStorage.setItem(key, JSON.stringify(data))
+                        displayTable(key)
+                        if (checkEmptyTable(table)){
+                            hideTable(table)
+                        }
+                    })
+                })
+            }
+
+            // Result Table
+            function getResults(){
+                let recentResult = localStorage.getItem("recentResult")
+                return parseJson(recentResult)
+            }
+
+            function displayResult(){
+                let table = RESULTSEARCH
+                clearRows(table)
+
+                let rows = getResults()
+                if (rows.length != 0) {
+
+                    showTable(table)
+                    rows.forEach(row => {
+                        let html = buildResultRow(row)
+                        addRow(table, html)
+                    })
+                    activeRemoveBtns(table)
+                }
+            }
+
+            function buildResultRow(student){
+                return ` 
+                    <tr>
+                        <th scope="row" class="name">${student.name}</th>
+                        <td class="email">${student.email}</td>
+                        <td class="sittingNo">${student.sittingNo}</td>
+                        <td class="gpa">${student.gpa}</td>
+                        <td><i class="fa-solid fa-xmark"></i></td>
+                    </tr>
+                `
+            }
+
+            function buildResultData(row){
+                console.log(row)
+                let childrenList = [...row.children]
+                let resultData = {}
+                childrenList.forEach(element => {
+                    if (element.classList.length != 0) {
+                        resultData[element.classList] = element.innerHTML
+                    }
+                })
+                return resultData
+            }
+
+            function removeResult(parentRow){
+                let resultData = buildResultData(parentRow)
+                let data = getResults()
+                removeValue(data, resultData)
+                parentRow.remove()
+                return data
+            }
+
+            function getReturnedRow(table){
+                let resultRow = table.querySelector("tbody tr")
+                if (resultRow?.children.length != 0){
+                    return resultRow
+                }
+                return null 
+            }
+
+            function saveResult(){
+                let table = RESULTSEARCH
+                let resultRow = getReturnedRow(table)
+                if (resultRow){
+                    let key = table.dataset.key
+                    let data = buildResultData(resultRow)
+                    saveToLocal(key, data)
+                }
+            }
+
+            // Recent Table
+            function getRecent(){
+                let recentSearch = localStorage.getItem("recentSearch")
+                return parseJson(recentSearch)
+            }
+
+            function displayRecent(){
+                let table = RECENTSEARCH
+
+                clearRows(table)
+                let rows = getRecent()
+                if (rows.length != 0) {
+                    showTable(table)
+                    rows.forEach((row, index) => {
+                        let html = buildRecentRow(row, index)
+                        addRow(table, html)
+                    })
+                    activeRemoveBtns(table)
+                    loadUserData()
+                }
+            }
+
+            function buildRecentRow(row, index){
+                return ` 
+                    <tr>
+                        <th scope="row">${index}</th>
+                        <td class="username">${row.username}</td>
+                        <td><i class="fa-solid fa-xmark"></i></td>
+                    </tr>
+                `
+            }
+
+            function removeRecent(parentRow){
+                let username = parentRow.querySelector(".username").innerHTML
+                let user = getUser(username)
+                let data = getRecent()
+                removeValue(data, user)
+                parentRow.remove()
+                return data
+            }
+            
+
+            // Form 
+            function loadUserData(){
+                let username = document.querySelectorAll("tbody .username")
+                username.forEach(element => {
+                    element.addEventListener("click", (e) => {
+                        let username = e.target.innerHTML
+                        let userData = getUser(username)
+                        loadInFields(userData)
+                    })
+                })
+            }
+
+            function loadInFields(data){
+                USERNAME.value = data.username 
+                PASSWORD.value = data.password
+            }   
 
         </script>
 
