@@ -106,6 +106,8 @@ def get_grades(request):
         conn =  requests.get(grades_url, headers=header)
 
         response = json.loads(conn.content)
-        print(response)
+        status_code = 200
+        if "message" in response:
+            status_code = 404
         
-    return JsonResponse(response, status=200)
+    return JsonResponse(response, status=status_code)

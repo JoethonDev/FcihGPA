@@ -236,7 +236,7 @@
             // Functions
 
             // General Functions
-            function buildEmptyRow(table) {
+            function buildEmptyRow(table, msg) {
                 let headRows = [...table.querySelectorAll("thead tr")]
                 let header = headRows.filter(row => {
                     return row.display != "none"
@@ -244,7 +244,7 @@
                 let cols_length = [...header.querySelectorAll("th")].length
                 let row = `
                 <tr>
-                    <td colspan=${cols_length} class="h3 text-center" style="padding:100px;">No data is found here!
+                    <td colspan=${cols_length} class="h3 text-center" style="padding:100px;">${msg}</td>
                 <tr>`
                 addRow(table, row)
             }
@@ -520,9 +520,7 @@
                 .then(response => response.json().then(data => ({"grades" : data.record, "status_code" : response.status})))
                 .then(result => {
                     if (result.status_code == 200) {
-                        console.log(result.grades)
                         grades = result.grades
-
                         result.grades.forEach(grade => saveToLocal("grades", grade))
                     }
                     else {
@@ -554,7 +552,8 @@
                     })
                 }
                 else {
-                    buildEmptyRow(table)
+                    buildEmptyRow(table, "No Grades are available right now!")
+                    // buildEmptyRow(table)
                 }
             }
 
