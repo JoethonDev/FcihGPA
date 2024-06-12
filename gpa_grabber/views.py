@@ -100,14 +100,15 @@ def get_results(request):
     return HttpResponseRedirect(reverse("index"))
     
 def get_grades(request):
+    response = {}
+    status_code = 404
     if "authorization" in request.session:
         grades_url = "http://193.227.34.50/backend/api/student/result"
         header = build_header(request)
         conn =  requests.get(grades_url, headers=header)
 
         response = json.loads(conn.content)
-        status_code = 200
-        if "message" in response:
-            status_code = 404
+        if "message" not in response:
+            status_code = 200
         
     return JsonResponse(response, status=status_code)
