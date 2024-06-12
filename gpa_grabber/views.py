@@ -1,13 +1,57 @@
 from django.shortcuts import render, HttpResponseRedirect
 from django.urls import reverse
 from django import forms
+from django.http import JsonResponse
 import requests
 import json
+from .models import Student
 
 # Forms
 class LoginForm(forms.Form):
     username = forms.CharField(label="Username", max_length=10, widget=forms.TextInput(attrs={"class" : "form-control", "autocomplete" : "off"}))
     password = forms.CharField(label="Password", max_length=64, widget=forms.TextInput(attrs={"class" : "form-control", "autocomplete" : "off"}))
+
+# General Functions
+def build_header(request, token=None):
+    header = {
+                "Accept-Encoding": "gzip, deflate",
+                "Accept-Language": "en",
+                "Authorization": "",
+                "Connection": "keep-alive",
+                "Host": "193.227.34.50",
+                "If-None-Match": "01e9ad1e34024cdc81ed6cf87df54674",
+                "Origin": "http://education.fcih.helwan.edu.eg",
+                "Referer": "http://education.fcih.helwan.edu.eg/",
+                "Sec-GPC": "1",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "accept": "application/json"
+            }
+    if token:
+        header['Authorization'] = f"Bearer {token}"
+    else:
+        header['Authorization'] = request.session['authorization']
+    
+    return header
+
+def get_profile(header):
+    profile = "http://193.227.34.50/backend/api/students/profile"
+
+    # Profile Details
+    prof_conn = requests.get(profile, headers=header)
+    parsed_data = json.loads(prof_conn.content)
+    
+    ar_name = parsed_data['body']['arabic_full_name']
+    gpa = round(float(parsed_data['body']['GPA']), 2)
+    email = parsed_data['body']['email']
+    sitting_number = parsed_data['body']['sitting_number']
+
+    return {
+                "ar_name" : ar_name,
+                "gpa" : gpa,
+                "email" : email,
+                "sitting_number" : sitting_number,
+                "gpa_found" : True
+            }
 
 # Create your views here.
 def index(request):
@@ -21,32 +65,18 @@ def index(request):
             **ctx
         })
 
-    elif request.method == "POST":
+def get_results(request):
+    if request.method == "POST":
         form = LoginForm(request.POST)
 
         if form.is_valid():
             username = str(request.POST.get("username"))
             password = str(request.POST.get("password"))
             login = "http://193.227.34.50/backend/api/login"
-            profile = "http://193.227.34.50/backend/api/students/profile"
 
             data = {
                 "username": username,
                 "password": password
-            }
-
-            header = {
-                "Accept-Encoding": "gzip, deflate",
-                "Accept-Language": "en",
-                "Authorization": "",
-                "Connection": "keep-alive",
-                "Host": "193.227.34.50",
-                "If-None-Match": "01e9ad1e34024cdc81ed6cf87df54674",
-                "Origin": "http://education.fcih.helwan.edu.eg",
-                "Referer": "http://education.fcih.helwan.edu.eg/",
-                "Sec-GPC": "1",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "accept": "application/json"
             }
 
             # Login POST request 
@@ -56,30 +86,26 @@ def index(request):
 
                 return HttpResponseRedirect(reverse("index"))
 
-            
             parsed_data = json.loads(conn.content)
+            header = build_header(request, parsed_data['body']['token'])
 
-            header['Authorization'] = f"Bearer {parsed_data['body']['token']}"
-
-            # Profile Details
-            prof_conn = requests.get(profile, headers=header)
-            parsed_data = json.loads(prof_conn.content)
-            
-            ar_name = parsed_data['body']['arabic_full_name']
-            gpa = round(float(parsed_data['body']['GPA']), 2)
-            email = parsed_data['body']['email']
-            sitting_number = parsed_data['body']['sitting_number']
-
-            ctx = {
-                "ar_name" : ar_name,
-                "gpa" : gpa,
-                "email" : email,
-                "sitting_number" : sitting_number,
-                "gpa_found" : True
-            }
+            ctx = get_profile(header)
+            student = Student.objects.filter(student_id=username)
+            if not student:
+                Student.objects.create(student_id=username, student_name=ctx['ar_name'], authorization=header['Authorization'], gpa=ctx['gpa'])
 
             request.session['content'] = ctx
+            request.session['authorization'] = header['Authorization']
 
-            return HttpResponseRedirect(reverse("index"))
+    return HttpResponseRedirect(reverse("index"))
+    
+def get_grades(request):
+    if "authorization" in request.session:
+        grades_url = "http://193.227.34.50/backend/api/student/result"
+        header = build_header(request)
+        conn =  requests.get(grades_url, headers=header)
 
-
+        response = json.loads(conn.content)
+        print(response)
+        
+    return JsonResponse(response, status=200)

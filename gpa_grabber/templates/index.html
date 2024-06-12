@@ -80,9 +80,29 @@
                 border-radius: 10px;
             }
 
-            .student-data{
+            .data-table{
                 width: 800px;
                 margin: auto;
+            }
+
+            .student-data{
+                width: fit-content;
+                margin: auto;
+                display: none;
+            }
+
+            .student-results{
+                display: none;
+            }
+
+            .student-data thead tr{
+                border-color: #dee2e6 !important;
+
+            }
+
+            #switchBtn {
+                display: block;
+                margin-left: auto;
             }
         </style>
     </head>
@@ -115,7 +135,7 @@
             <div class="center form-section">
                 <h2>GPA Grabber</h2>
                 <h3 id="error">{{ error }}</h3>
-                <form action="" method="post">
+                <form action="/results" method="post">
                     {% csrf_token %}
                     <div class="container">
 
@@ -138,27 +158,38 @@
             </div>
         </div>
 
-        <table class="table student-data mt-3" data-key="recentResult">
-            <thead>
-            <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Email</th>
-                <th scope="col">Sitting Number</th>
-                <th scope="col">GPA</th>
-                <th scope="col"></th>
-            </tr>
-            </thead>
-            <tbody>
-                {% if gpa_found %}
-                    <tr>
-                        <th scope="row" class="name">{{ ar_name }}</th>
-                        <td class="email">{{ email }}</td>
-                        <td class="sittingNo">{{ sitting_number}}</td>
-                        <td class="gpa">{{ gpa }}</td>
+        <div class="data-table">
+            <button class="btn btn-info" id="switchBtn" data-current="overview">Detailed Grades</button>
+            <table class="table student-data mt-3" data-key="recentResult">
+                <thead>
+                    <tr class="student-overview">
+                        <th scope="col">Name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Sitting Number</th>
+                        <th scope="col">GPA</th>
+                        <th scope="col"></th>
                     </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                    <tr class="student-results">
+                        <th scope="col">Subject</th>
+                        <th scope="col">Course Work</th>
+                        <th scope="col">Final Grade</th>
+                        <th scope="col">Total Grade</th>
+                        <th scope="col">Grade Symbol</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if gpa_found %}
+                        <tr>
+                            <th scope="row" class="name">{{ ar_name }}</th>
+                            <td class="email">{{ email }}</td>
+                            <td class="sittingNo">{{ sitting_number}}</td>
+                            <td class="gpa">{{ gpa }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+      
 
         <script>
             const RECENTSEARCH = document.querySelector(".recent")
@@ -166,7 +197,9 @@
             const FORM = document.querySelector("form")
             const USERNAME = document.querySelector("input[name='username']")
             const PASSWORD = document.querySelector("input[name='password']")
-
+            const SWITCH = document.querySelector("#switchBtn")
+            const LIMIT = 6
+            
             // on window load
             document.addEventListener("DOMContentLoaded", () => {
                 displayRecent()
@@ -189,10 +222,79 @@
                 
             })
 
+            // on click switch btn
+            SWITCH.addEventListener("click", () => {
+                switchResults()
+            })
+
+
+            // on window refresh
+            window.addEventListener('beforeunload', function (e) {
+                localStorage.removeItem("grades")
+            });
 
             // Functions
 
             // General Functions
+            function buildEmptyRow(table) {
+                let headRows = [...table.querySelectorAll("thead tr")]
+                let header = headRows.filter(row => {
+                    return row.display != "none"
+                })[0]
+                let cols_length = [...header.querySelectorAll("th")].length
+                let row = `
+                <tr>
+                    <td colspan=${cols_length} class="h3 text-center" style="padding:100px;">No data is found here!
+                <tr>`
+                addRow(table, row)
+            }
+
+            function getLocalItem(key) {
+                let value = localStorage.getItem(key)
+                return parseJson(value)
+            }
+
+            function modifySwitchBtn(dataset, innerText) {
+                SWITCH.dataset.current = dataset
+                SWITCH.innerHTML = innerText
+            }
+
+            function switchResults() {
+                let current =  SWITCH.dataset.current
+                if (current == "overview") {
+                    modifySwitchBtn("grades", "Student Overview")
+                    displayGrades()
+
+                }
+                else {
+                    modifySwitchBtn("overview", "Detailed Grades")
+                    displayResult()
+
+                }
+                toggleHeaders()
+            }
+
+            function toggleHeaders() {
+                let headers = document.querySelectorAll(".student-data thead tr")
+                headers.forEach(row => {
+                    let display = window.getComputedStyle(row).display
+                    console.log(`Display : ${display}`)
+                    if (display == "table-row"){
+                        row.style.display = "none"
+                    }
+                    else {
+                        row.style.display = "table-row"
+                    }
+                })
+            }
+
+            function removeRowAndUpdateStorage(key, value, row){
+                let data = getLocalItem(key)
+                removeValue(data, value)
+                row.remove()
+                return data
+            }
+
             function removeValue(data, value) {
                 let index = getIndex(data, value)
                 if (index != -1){
@@ -201,7 +303,7 @@
             }
 
             function getUser(username) {
-                let data = getRecent()
+                let data = getLocalItem("recentSearch")
                 let userData = {}
                 data.forEach(user => {
                     if (user.username == username) {
@@ -211,31 +313,23 @@
                 return userData
             }
 
-            function getData(key){
-                if (key === "recentSearch"){
-                    return getRecent()
-                }
-                else {
-                    return getResults()
-                }
-            }
-
-            function saveToLocal(key, data){
-                let storedData = getData(key)
-                console.log("Data : ")
-                console.log(data)
+            function saveToLocal(key, data, limit = LIMIT){
+                let storedData = getLocalItem(key)
                 if (storedData.length != 0) {
                     removeValue(storedData, data)
                 }
-
+                removeExceedLimit(storedData, limit)
                 pushToLocal(storedData, data)
                 localStorage.setItem(key, JSON.stringify(storedData))
             }
 
-            function pushToLocal(storedData, data){
-                if (storedData.length == 5){
+            function removeExceedLimit(storedData, limit){
+                if (storedData.length == limit){
                     storedData.pop()
                 }
+            }
+
+            function pushToLocal(storedData, data){
                 storedData.unshift(data)
             }
 
@@ -301,8 +395,6 @@
             }
 
             function activeRemoveBtns(table){
-                console.log(`Table : ${table}`)
-
                 let key = table.dataset.key
                 let xMarks = table.querySelectorAll(".fa-xmark")
                 xMarks.forEach(element => {
@@ -321,16 +413,11 @@
             }
 
             // Result Table
-            function getResults(){
-                let recentResult = localStorage.getItem("recentResult")
-                return parseJson(recentResult)
-            }
-
             function displayResult(){
                 let table = RESULTSEARCH
                 clearRows(table)
 
-                let rows = getResults()
+                let rows = getLocalItem("recentResult")
                 if (rows.length != 0) {
 
                     showTable(table)
@@ -368,9 +455,7 @@
 
             function removeResult(parentRow){
                 let resultData = buildResultData(parentRow)
-                let data = getResults()
-                removeValue(data, resultData)
-                parentRow.remove()
+                let data = removeRowAndUpdateStorage("recentResult", resultData, parentRow)
                 return data
             }
 
@@ -388,21 +473,16 @@
                 if (resultRow){
                     let key = table.dataset.key
                     let data = buildResultData(resultRow)
-                    saveToLocal(key, data)
+                    saveToLocal(key, data, 5)
                 }
             }
 
             // Recent Table
-            function getRecent(){
-                let recentSearch = localStorage.getItem("recentSearch")
-                return parseJson(recentSearch)
-            }
-
             function displayRecent(){
                 let table = RECENTSEARCH
 
                 clearRows(table)
-                let rows = getRecent()
+                let rows = getLocalItem("recentSearch")
                 if (rows.length != 0) {
                     showTable(table)
                     rows.forEach((row, index) => {
@@ -427,12 +507,69 @@
             function removeRecent(parentRow){
                 let username = parentRow.querySelector(".username").innerHTML
                 let user = getUser(username)
-                let data = getRecent()
-                removeValue(data, user)
-                parentRow.remove()
+                let data = removeRowAndUpdateStorage("recentSearch", user, parentRow)
                 return data
             }
             
+            // Grade Table
+            async function fetchGrades() {
+                let grades = []
+                let url = "/grades"
+                // url = "https://api.jsonbin.io/v3/qs/6669f5aead19ca34f87827e6"
+                await fetch(url)
+                .then(response => response.json().then(data => ({"grades" : data.record, "status_code" : response.status})))
+                .then(result => {
+                    if (result.status_code == 200) {
+                        console.log(result.grades)
+                        grades = result.grades
+
+                        result.grades.forEach(grade => saveToLocal("grades", grade))
+                    }
+                    else {
+                        console.log("No Grades are available right now!")
+                    }
+                })
+
+                return grades
+            }
+
+            async function getGrades(){
+                let grades = getLocalItem("grades")
+                if (grades.length == 0){
+                    grades = await fetchGrades()
+                }
+                return grades
+            }
+
+            async function displayGrades(){
+                let table = RESULTSEARCH
+
+                clearRows(table)
+                let rows = await getGrades()
+                if (rows.length != 0) {
+                    showTable(table)
+                    rows.forEach(row => {
+                        let html = buildGradeRow(row)
+                        addRow(table, html)
+                    })
+                }
+                else {
+                    buildEmptyRow(table)
+                }
+            }
+
+            function buildGradeRow(grade){
+                console.log(grade)
+                return ` 
+                    <tr>
+                        <td class="subject">${grade.subject}</td>
+                        <td class="course-work">${grade.courseWork}</td>
+                        <td class="final-grade">${grade.finalGrade}</td>
+                        <td class="total-grade">${grade.total}</td>
+                        <td class="symbol">${grade.symbol}</td>
+                    </tr>
+                `
+            }
 
             // Form 
             function loadUserData(){
