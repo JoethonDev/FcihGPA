@@ -26,7 +26,6 @@ SECRET_KEY = 'django-insecure-(lthjsuept$k$uf@008_a)-2$d28)q&5)3^b&+0qpk^ykmw2-4
 DEBUG = True
 
 ALLOWED_HOSTS = ["joethon.alwaysdata.net"]
-ALLOWED_HOSTS = ["https://joethon.alwaysdata.net/"]
 
 
 # Application definition
