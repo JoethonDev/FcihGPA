@@ -108,7 +108,24 @@ def get_grades(request):
         conn =  requests.get(grades_url, headers=header)
 
         response = json.loads(conn.content)
-        if "message" not in response:
+        if "body" in response:
             status_code = 200
+            # Grades
+            try:
+                response = {
+                    "grades" : [
+                        {
+                            "subject" : grade["course_name"],
+                            "courseWork" : grade["semester_work_grade"],
+                            "finalGrade" : grade["final_grade"],
+                            "total" : grade["total_grade"],
+                            "symbol" : grade["general_grade"]
+                        }
+                        for grade in response["body"]["results"]
+                    ]
+
+                }
+            except Exception:
+                status_code = 404
         
     return JsonResponse(response, status=status_code)

@@ -517,7 +517,7 @@
                 let url = "/grades"
                 // url = "https://api.jsonbin.io/v3/qs/6669f5aead19ca34f87827e6"
                 await fetch(url)
-                .then(response => response.json().then(data => ({"grades" : data.record, "status_code" : response.status})))
+                .then(response => response.json().then(data => ({"grades" : data.grades, "status_code" : response.status})))
                 .then(result => {
                     if (result.status_code == 200) {
                         grades = result.grades
