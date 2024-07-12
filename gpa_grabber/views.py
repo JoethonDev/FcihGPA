@@ -93,7 +93,8 @@ def get_results(request):
             student = Student.objects.filter(student_id=username)
             if not student:
                 Student.objects.create(student_id=username, student_name=ctx['ar_name'], authorization=header['Authorization'], gpa=ctx['gpa'])
-
+            else:
+                Student.objects.filter(student_id=username).update(authorization=header['Authorization'], gpa=ctx['gpa'])
             request.session['content'] = ctx
             request.session['authorization'] = header['Authorization']
 
