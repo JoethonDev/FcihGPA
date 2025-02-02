@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-(lthjsuept$k$uf@008_a)-2$d28)q&5)3^b&+0qpk^ykmw2-4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["joethon.alwaysdata.net", "127.0.0.1"]
 

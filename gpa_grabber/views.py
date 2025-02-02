@@ -80,7 +80,9 @@ def get_results(request):
             }
 
             # Login POST request 
-            conn = requests.post(login, data)
+            conn = requests.post(login, data, headers={
+                "origin" : "http://education.fcih.helwan.edu.eg"
+            })
             if conn.status_code != 200:
                 request.session['error'] = "Username or Password is wrong!"
 
