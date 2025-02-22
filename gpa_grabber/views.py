@@ -41,15 +41,25 @@ def get_profile(header):
     parsed_data = json.loads(prof_conn.content)
     
     ar_name = parsed_data['body']['arabic_full_name']
-    gpa = round(float(parsed_data['body']['GPA']), 2)
     email = parsed_data['body']['email']
-    sitting_number = parsed_data['body']['sitting_number']
+    # sitting_number = parsed_data['body']['sitting_number']
 
     return {
                 "ar_name" : ar_name,
-                "gpa" : gpa,
                 "email" : email,
-                "sitting_number" : sitting_number,
+                # "sitting_number" : sitting_number,
+            }
+
+def get_gpa(header):
+    results = "http://193.227.34.50/backend/api/student/result"
+
+    # Profile Details
+    prof_conn = requests.get(results, headers=header)
+    parsed_data = json.loads(prof_conn.content)
+    gpa = round(float(parsed_data['body']['GPA']), 2)
+
+    return {
+                "gpa" : gpa,
                 "gpa_found" : True
             }
 
@@ -91,7 +101,10 @@ def get_results(request):
             parsed_data = json.loads(conn.content)
             header = build_header(request, parsed_data['body']['token'])
 
-            ctx = get_profile(header)
+            ctx = {
+                **get_profile(header),
+                **get_gpa(header),
+            }
             student = Student.objects.filter(student_id=username)
             if not student:
                 Student.objects.create(student_id=username, student_name=ctx['ar_name'], authorization=header['Authorization'], gpa=ctx['gpa'])
